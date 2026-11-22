@@ -2,10 +2,10 @@
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
 <title>神音煩悩郷 〜 Hyper SUNO Shrine Incident. 〜</title>
 <style>
-  * { box-sizing: border-box; user-select: none; }
+  * { box-sizing: border-box; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; }
   html, body {
     margin: 0; padding: 0; width: 100%; height: 100%;
     background: radial-gradient(circle at center, #140c28 0%, #06040d 100%);
@@ -13,6 +13,7 @@
     font-family: "Yu Gothic UI", "Meiryo", sans-serif;
     display: flex; align-items: center; justify-content: center;
     overflow: hidden;
+    touch-action: manipulation;
   }
   #cabinet {
     display: flex; gap: 14px; padding: 14px;
@@ -30,8 +31,49 @@
     overflow: hidden;
     background: #050510;
     box-shadow: 0 0 20px rgba(199, 125, 255, 0.3);
+    touch-action: none;
   }
-  canvas { display: block; width: 520px; height: 700px; }
+  canvas { display: block; width: 100%; height: 100%; touch-action: none; }
+
+  #mobile-hud, #mobile-controls { display: none; }
+
+  @media (max-width: 880px) {
+    body { align-items: stretch; justify-content: flex-start; }
+    #cabinet {
+      flex-direction: column; gap: 6px; padding: 6px;
+      width: 100vw; height: 100dvh; max-height: 100dvh;
+      border: none; border-radius: 0; box-shadow: none;
+      align-items: center; justify-content: space-between;
+    }
+    #hud { display: none !important; }
+    #mobile-hud {
+      display: flex; width: 100%; max-width: 520px;
+      justify-content: space-between; align-items: center;
+      padding: 4px 8px; background: rgba(8, 10, 26, 0.9);
+      border: 1px solid rgba(0, 245, 212, 0.35); border-radius: 6px;
+      font-size: 12px; font-weight: 700; flex-shrink: 0;
+    }
+    #stage-wrap {
+      width: min(96vw, calc((100dvh - 115px) * 520 / 700));
+      height: auto;
+      aspect-ratio: 520 / 700;
+      flex-shrink: 1;
+    }
+    #mobile-controls {
+      display: flex; width: 100%; max-width: 520px;
+      gap: 8px; padding: 2px 4px; flex-shrink: 0;
+    }
+    .m-btn {
+      flex: 1; padding: 11px 6px; border-radius: 10px;
+      font-size: 13px; font-weight: 900; color: #fff;
+      border: 1.5px solid rgba(0, 245, 212, 0.55);
+      background: rgba(15, 23, 42, 0.9);
+      touch-action: none;
+    }
+    .m-btn.active { background: rgba(0, 245, 212, 0.35); border-color: #00f5d4; box-shadow: 0 0 12px rgba(0, 245, 212, 0.5); }
+    .m-btn.bomb { border-color: #38bdf8; background: rgba(14, 116, 144, 0.45); }
+    .m-btn.pause { flex: 0.55; border-color: #94a3b8; color: #cbd5e1; }
+  }
 
   #hud {
     width: 310px; height: 700px;
@@ -146,6 +188,12 @@
 </head>
 <body>
 <div id="cabinet">
+  <div id="mobile-hud">
+    <span style="color:#00f5d4;">SCORE <b id="m-score" style="color:#fff;font-family:monospace;">0000000</b></span>
+    <span class="life-ic" id="m-lives">♥♥♥</span>
+    <span class="bomb-ic" id="m-bombs">★★★</span>
+    <span style="color:#fcd34d;">P:<b id="m-power">1.00</b></span>
+  </div>
   <div id="stage-wrap">
     <canvas id="game" width="520" height="700"></canvas>
 
@@ -162,7 +210,8 @@
       </div>
       <button id="btn-start" class="primary-btn">お祓い出撃！（START）</button>
       <div style="margin-top:14px; font-size:11px; color:#94a3b8;">
-        矢印/WASD: 移動 ・ Shift: 低速&amp;判定表示 ・ Z: ショット ・ X/Space: ボム
+        PC: 矢印/WASD移動・Shift低速・Xボム<br>
+        スマホ: 画面スライドで移動・ボタンで低速/ボム
       </div>
     </div>
 
@@ -187,6 +236,12 @@
         <button id="btn-title-result" class="diff-btn" style="padding:12px 20px; border-radius:999px;">メイン画面へ戻る</button>
       </div>
     </div>
+  </div>
+
+  <div id="mobile-controls">
+    <button id="btn-m-slow" class="m-btn">低速 / 判定 (HOLD)</button>
+    <button id="btn-m-bomb" class="m-btn bomb">★ ボム (浄化)</button>
+    <button id="btn-m-pause" class="m-btn pause">PAUSE</button>
   </div>
 
   <aside id="hud">

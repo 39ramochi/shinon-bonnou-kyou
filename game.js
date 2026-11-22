@@ -11,6 +11,10 @@
   const uiBombs = document.getElementById('ui-bombs');
   const uiPower = document.getElementById('ui-power');
   const uiGraze = document.getElementById('ui-graze');
+  const mScore = document.getElementById('m-score');
+  const mLives = document.getElementById('m-lives');
+  const mBombs = document.getElementById('m-bombs');
+  const mPower = document.getElementById('m-power');
   const scrTitle = document.getElementById('screen-title');
   const scrPause = document.getElementById('screen-pause');
   const scrResult = document.getElementById('screen-result');
@@ -177,7 +181,83 @@
     }
   });
   window.addEventListener('keyup', (e) => { keys[e.code] = false; });
-  canvas.addEventListener('click', () => { if (state === 'dialog') advanceDialog(); });
+
+  // Touch & Mobile Controls (relative drag so finger doesn't hide player)
+  let touchActiveId = null;
+  let lastTouchX = 0, lastTouchY = 0;
+  let mobileSlow = false;
+  let suppressClickUntil = 0;
+
+  canvas.addEventListener('touchstart', (e) => {
+    e.preventDefault();
+    if (state === 'dialog') {
+      suppressClickUntil = performance.now() + 400;
+      advanceDialog();
+      return;
+    }
+    if (touchActiveId === null && e.changedTouches.length > 0) {
+      const t = e.changedTouches[0];
+      touchActiveId = t.identifier;
+      lastTouchX = t.clientX;
+      lastTouchY = t.clientY;
+    }
+  }, { passive: false });
+
+  canvas.addEventListener('touchmove', (e) => {
+    e.preventDefault();
+    if (state !== 'playing' || touchActiveId === null) return;
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      const t = e.changedTouches[i];
+      if (t.identifier === touchActiveId) {
+        const rect = canvas.getBoundingClientRect();
+        const scaleX = W / (rect.width || W);
+        const scaleY = H / (rect.height || H);
+        const sens = mobileSlow ? 0.55 : 1.05;
+        const dx = (t.clientX - lastTouchX) * scaleX * sens;
+        const dy = (t.clientY - lastTouchY) * scaleY * sens;
+        player.x = Math.max(20, Math.min(W - 20, player.x + dx));
+        player.y = Math.max(24, Math.min(H - 24, player.y + dy));
+        lastTouchX = t.clientX;
+        lastTouchY = t.clientY;
+        break;
+      }
+    }
+  }, { passive: false });
+
+  const endTouch = (e) => {
+    for (let i = 0; i < e.changedTouches.length; i++) {
+      if (e.changedTouches[i].identifier === touchActiveId) {
+        touchActiveId = null;
+        break;
+      }
+    }
+  };
+  canvas.addEventListener('touchend', endTouch);
+  canvas.addEventListener('touchcancel', endTouch);
+  canvas.addEventListener('click', () => {
+    if (performance.now() < suppressClickUntil) return;
+    if (state === 'dialog') advanceDialog();
+  });
+
+  const btnMSlow = document.getElementById('btn-m-slow');
+  const btnMBomb = document.getElementById('btn-m-bomb');
+  const btnMPause = document.getElementById('btn-m-pause');
+  if (btnMSlow) {
+    const setSlow = (v, e) => { e.preventDefault(); mobileSlow = v; btnMSlow.classList.toggle('active', v); };
+    btnMSlow.addEventListener('touchstart', (e) => setSlow(true, e), { passive: false });
+    btnMSlow.addEventListener('touchend', (e) => setSlow(false, e));
+    btnMSlow.addEventListener('touchcancel', (e) => setSlow(false, e));
+  }
+  if (btnMBomb) {
+    btnMBomb.addEventListener('touchstart', (e) => { e.preventDefault(); if (state === 'playing') tryBomb(); }, { passive: false });
+    btnMBomb.addEventListener('click', () => { if (state === 'playing') tryBomb(); });
+  }
+  if (btnMPause) {
+    btnMPause.addEventListener('click', () => {
+      if (state === 'playing') { state = 'paused'; scrPause.classList.remove('hidden'); bgmAudio.pause(); }
+      else if (state === 'paused') resumeGame();
+    });
+  }
 
   // UI Listeners
   document.querySelectorAll('.diff-btn[data-diff]').forEach(btn => {
@@ -239,6 +319,10 @@
     uiBombs.textContent = '★'.repeat(Math.max(0, bombs)) || '—';
     uiPower.textContent = `${power.toFixed(2)} / 4.00`;
     uiGraze.textContent = String(grazeCount);
+    if (mScore) mScore.textContent = uiScore.textContent;
+    if (mLives) mLives.textContent = uiLives.textContent;
+    if (mBombs) mBombs.textContent = uiBombs.textContent;
+    if (mPower) mPower.textContent = power.toFixed(2);
   }
 
   function startGame() {
@@ -609,7 +693,7 @@
     updateStageWaves(stageTime);
 
     // Player movement
-    const slow = keys['ShiftLeft'] || keys['ShiftRight'];
+    const slow = keys['ShiftLeft'] || keys['ShiftRight'] || mobileSlow;
     const spd = slow ? 135 : 295;
     let dx = 0, dy = 0;
     if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
@@ -881,8 +965,8 @@
     if (player.invuln <= 0 || Math.floor(player.invuln * 16) % 2 === 0) {
       drawSprite(imgs.player, player.x, player.y, 70);
     }
-    // Hitbox core on Shift
-    if (keys['ShiftLeft'] || keys['ShiftRight']) {
+    // Hitbox core on Shift or Mobile Slow
+    if (keys['ShiftLeft'] || keys['ShiftRight'] || mobileSlow) {
       ctx.save();
       ctx.translate(player.x, player.y);
       ctx.rotate(stageTime * 2.5);
