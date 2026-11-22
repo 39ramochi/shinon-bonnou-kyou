@@ -1,0 +1,259 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>神音煩悩郷 〜 Hyper SUNO Shrine Incident. 〜</title>
+<style>
+  * { box-sizing: border-box; user-select: none; }
+  html, body {
+    margin: 0; padding: 0; width: 100%; height: 100%;
+    background: radial-gradient(circle at center, #140c28 0%, #06040d 100%);
+    color: #f8fafc;
+    font-family: "Yu Gothic UI", "Meiryo", sans-serif;
+    display: flex; align-items: center; justify-content: center;
+    overflow: hidden;
+  }
+  #cabinet {
+    display: flex; gap: 14px; padding: 14px;
+    background: linear-gradient(145deg, rgba(22, 16, 44, 0.96), rgba(10, 8, 22, 0.98));
+    border: 2px solid #00f5d4;
+    border-radius: 14px;
+    box-shadow: 0 0 36px rgba(0, 245, 212, 0.25), inset 0 0 24px rgba(199, 125, 255, 0.15);
+    max-height: 98vh;
+  }
+  #stage-wrap {
+    position: relative;
+    width: 520px; height: 700px;
+    border: 2px solid #c77dff;
+    border-radius: 6px;
+    overflow: hidden;
+    background: #050510;
+    box-shadow: 0 0 20px rgba(199, 125, 255, 0.3);
+  }
+  canvas { display: block; width: 520px; height: 700px; }
+
+  #hud {
+    width: 310px; height: 700px;
+    display: flex; flex-direction: column; justify-content: space-between;
+    padding: 10px 12px;
+    background: rgba(8, 10, 26, 0.85);
+    border: 1px solid rgba(0, 245, 212, 0.35);
+    border-radius: 8px;
+  }
+  .hud-title {
+    text-align: center;
+    border-bottom: 1px solid rgba(0, 245, 212, 0.35);
+    padding-bottom: 8px;
+  }
+  .hud-title h1 {
+    margin: 0; font-size: 18px; font-weight: 900;
+    background: linear-gradient(90deg, #00f5d4, #fff, #f472b6);
+    -webkit-background-clip: text; color: transparent;
+    letter-spacing: 0.5px;
+  }
+  .hud-title .sub { font-size: 11px; color: #94a3b8; margin-top: 2px; }
+
+  .stat-row {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 5px 8px; margin: 4px 0;
+    background: rgba(255, 255, 255, 0.04);
+    border-left: 3px solid #00f5d4;
+    border-radius: 4px;
+    font-size: 14px;
+  }
+  .stat-label { color: #94a3b8; font-weight: 700; font-size: 12px; letter-spacing: 1px; }
+  .stat-val { font-family: monospace; font-size: 17px; font-weight: 900; color: #fff; }
+  .icons { font-size: 16px; letter-spacing: 2px; }
+  .life-ic { color: #fb7185; text-shadow: 0 0 6px #fb7185; }
+  .bomb-ic { color: #38bdf8; text-shadow: 0 0 6px #38bdf8; }
+
+  .controls-box {
+    background: rgba(0, 245, 212, 0.06);
+    border: 1px solid rgba(0, 245, 212, 0.25);
+    border-radius: 6px;
+    padding: 8px 10px;
+    font-size: 11.5px; line-height: 1.55; color: #cbd5e1;
+  }
+  .controls-box b { color: #00f5d4; }
+  .toggles {
+    display: flex; flex-direction: column; gap: 6px;
+    font-size: 12px; color: #e2e8f0;
+    padding: 6px 4px;
+  }
+  .toggles label { display: flex; align-items: center; justify-content: space-between; cursor: pointer; }
+  input[type="range"] { width: 120px; accent-color: #00f5d4; }
+
+  .portrait-box {
+    position: relative; height: 150px;
+    border-radius: 6px; overflow: hidden;
+    border: 1px solid rgba(244, 114, 182, 0.4);
+    background: radial-gradient(circle at 50% 30%, #1e1b4b, #090714);
+    display: flex; align-items: center; justify-content: center;
+  }
+  .portrait-box img {
+    height: 100%; width: 100%; object-fit: cover; object-position: 50% 18%;
+    opacity: 0.92;
+  }
+  .portrait-cap {
+    position: absolute; bottom: 0; left: 0; right: 0;
+    background: linear-gradient(transparent, rgba(0,0,0,0.85));
+    padding: 14px 8px 4px; font-size: 11px; font-weight: 700; color: #f9a8d4;
+    text-align: center;
+  }
+
+  /* Overlay Menus */
+  .overlay {
+    position: absolute; inset: 0;
+    background: rgba(6, 5, 16, 0.86);
+    backdrop-filter: blur(4px);
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    padding: 24px; text-align: center; z-index: 10;
+  }
+  .hidden { display: none !important; }
+  .overlay h2 {
+    margin: 0 0 6px; font-size: 26px; font-weight: 900;
+    background: linear-gradient(90deg, #00f5d4, #fff, #f472b6);
+    -webkit-background-clip: text; color: transparent;
+  }
+  .overlay p { font-size: 13px; color: #cbd5e1; margin: 4px 0 14px; line-height: 1.5; }
+  .diff-group { display: flex; gap: 8px; margin-bottom: 16px; }
+  .diff-btn {
+    padding: 8px 14px; border-radius: 6px; border: 1px solid #475569;
+    background: rgba(30, 41, 59, 0.8); color: #cbd5e1;
+    font-weight: 700; cursor: pointer; font-size: 13px; transition: 0.15s;
+  }
+  .diff-btn.active {
+    border-color: #00f5d4; background: rgba(0, 245, 212, 0.2); color: #fff;
+    box-shadow: 0 0 12px rgba(0, 245, 212, 0.4);
+  }
+  .primary-btn {
+    padding: 12px 32px; border-radius: 999px; border: none;
+    background: linear-gradient(90deg, #00f5d4, #c084fc);
+    color: #06040d; font-size: 16px; font-weight: 900; cursor: pointer;
+    box-shadow: 0 0 20px rgba(0, 245, 212, 0.45);
+    transition: transform 0.12s;
+  }
+  .primary-btn:hover { transform: scale(1.05); }
+  .result-box {
+    width: 100%; background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(0, 245, 212, 0.35);
+    border-radius: 8px; padding: 12px; margin: 10px 0 18px;
+    font-size: 13px; text-align: left;
+  }
+  .result-box div { display: flex; justify-content: space-between; margin: 4px 0; }
+</style>
+</head>
+<body>
+<div id="cabinet">
+  <div id="stage-wrap">
+    <canvas id="game" width="520" height="700"></canvas>
+
+    <!-- Title Screen -->
+    <div id="screen-title" class="overlay">
+      <img src="assets/cover_art.jpg" alt="神音煩悩郷" style="width:100%; border-radius:8px; border:1px solid rgba(0,245,212,0.45); margin-bottom:14px; box-shadow:0 0 20px rgba(199,125,255,0.35);">
+      <div style="font-size:11px; color:#00f5d4; letter-spacing:2px; font-weight:700; margin-bottom:4px;">HYPER SUNO SHRINE INCIDENT.</div>
+      <h2>神音煩悩郷</h2>
+      <p>煩悩を祓え、BPM180の弾幕神楽。</p>
+      <div class="diff-group">
+        <button class="diff-btn" data-diff="easy">EASY</button>
+        <button class="diff-btn active" data-diff="normal">NORMAL</button>
+        <button class="diff-btn" data-diff="lunatic">LUNATIC</button>
+      </div>
+      <button id="btn-start" class="primary-btn">お祓い出撃！（START）</button>
+      <div style="margin-top:14px; font-size:11px; color:#94a3b8;">
+        矢印/WASD: 移動 ・ Shift: 低速&amp;判定表示 ・ Z: ショット ・ X/Space: ボム
+      </div>
+    </div>
+
+    <!-- Pause Screen -->
+    <div id="screen-pause" class="overlay hidden">
+      <h2>PAUSE</h2>
+      <p>一時停止中（Esc / P で再開）</p>
+      <button id="btn-resume" class="primary-btn" style="margin-bottom:10px;">再開する</button>
+      <div style="display:flex; gap:8px;">
+        <button id="btn-retry-pause" class="diff-btn">最初からやり直す</button>
+        <button id="btn-title-pause" class="diff-btn">タイトルへ戻る</button>
+      </div>
+    </div>
+
+    <!-- Result / GameOver Screen -->
+    <div id="screen-result" class="overlay hidden">
+      <h2 id="res-title">お祓い完了！</h2>
+      <p id="res-sub">ayataka神は無事に煩悩から目覚めました！</p>
+      <div class="result-box" id="res-stats"></div>
+      <div style="display:flex; gap:10px; justify-content:center;">
+        <button id="btn-retry" class="primary-btn">もう一度遊ぶ</button>
+        <button id="btn-title-result" class="diff-btn" style="padding:12px 20px; border-radius:999px;">メイン画面へ戻る</button>
+      </div>
+    </div>
+  </div>
+
+  <aside id="hud">
+    <div>
+      <div class="hud-title">
+        <h1>神音煩悩郷</h1>
+        <div class="sub">Hyper SUNO Shrine Incident.</div>
+      </div>
+
+      <div class="stat-row" style="margin-top:8px;">
+        <span class="stat-label">HI-SCORE</span>
+        <span class="stat-val" id="ui-hiscore">0000000</span>
+      </div>
+      <div class="stat-row">
+        <span class="stat-label">SCORE</span>
+        <span class="stat-val" id="ui-score">0000000</span>
+      </div>
+      <div class="stat-row" style="border-left-color:#fb7185;">
+        <span class="stat-label">PLAYER</span>
+        <span class="icons life-ic" id="ui-lives">♥♥♥</span>
+      </div>
+      <div class="stat-row" style="border-left-color:#38bdf8;">
+        <span class="stat-label">SPELL</span>
+        <span class="icons bomb-ic" id="ui-bombs">★★★</span>
+      </div>
+      <div class="stat-row" style="border-left-color:#f59e0b;">
+        <span class="stat-label">POWER</span>
+        <span class="stat-val" id="ui-power" style="color:#fcd34d;">1.00 / 4.00</span>
+      </div>
+      <div class="stat-row" style="border-left-color:#c084fc;">
+        <span class="stat-label">GRAZE</span>
+        <span class="stat-val" id="ui-graze" style="color:#e9d5ff;">0</span>
+      </div>
+    </div>
+
+    <div class="controls-box">
+      <b>【操作方法】</b><br>
+      ・<b>移動</b>：矢印キー / WASD<br>
+      ・<b>低速＆当たり判定</b>：Shift キー<br>
+      ・<b>ショット</b>：Z キー（オート切替可）<br>
+      ・<b>ボム（弾消し）</b>：X / Space キー<br>
+      ・<b>会話送り</b>：Z / Enter / クリック
+    </div>
+
+    <div class="toggles">
+      <label>
+        <span>オートショット</span>
+        <input type="checkbox" id="chk-auto" checked>
+      </label>
+      <label>
+        <span>BGM音量</span>
+        <input type="range" id="rng-bgm" min="0" max="1" step="0.05" value="0.55">
+      </label>
+      <label>
+        <span>SE音量（Web Audio）</span>
+        <input type="range" id="rng-se" min="0" max="1" step="0.05" value="0.5">
+      </label>
+    </div>
+
+    <div class="portrait-box">
+      <img src="assets/shirane_portrait.jpg" alt="白音さん">
+      <div class="portrait-cap">首席巫女：白音（しらね）</div>
+    </div>
+  </aside>
+</div>
+
+<audio id="bgm-audio" src="assets/bgm.mp3" loop preload="auto"></audio>
+<script src="game.js"></script>
+</body>
+</html>
