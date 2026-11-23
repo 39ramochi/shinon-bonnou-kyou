@@ -1576,7 +1576,7 @@
         ctx.restore();
       }
       // Right standing (ayataka / Evil Sweet)
-      const rImg = cur.speaker === 'evilsweet'
+      const rImg = (currentStage === 2 || cur.speaker === 'evilsweet')
         ? imgs.evilStand
         : (cur.speaker === 'ayataka_god' ? imgs.bossGodStand : imgs.bossSkebeStand);
       if (rImg && rImg.complete) {
