@@ -738,8 +738,8 @@
         x: W / 2, y: -90, targetX: W / 2, targetY: 130,
         phase: 0,
         maxPhases: 5,
-        hp: 2600 * DIFFS[currentDiff].bossHp,
-        maxHp: 2600 * DIFFS[currentDiff].bossHp,
+        hp: 6200 * DIFFS[currentDiff].bossHp,
+        maxHp: 6200 * DIFFS[currentDiff].bossHp,
         timer: 45,
         invuln: true,
         fireCd: 0.6,
@@ -815,7 +815,7 @@
         cutin = { timer: 1.5, maxTimer: 1.5, name: boss.spellName, imgKey: 'bossSkebeStand', color: '#f472b6', side: 'right' };
       }
     } else {
-      const hpTable = [2600, 3400, 2900, 3800, 4800];
+      const hpTable = [6200, 8200, 7200, 9000, 11000];
       const spellNames = [
         '',
         '甘罠『スイート・ポイズン・ケージ』',
