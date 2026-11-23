@@ -329,6 +329,33 @@
   document.getElementById('btn-title-result').addEventListener('click', returnToTitle);
   document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
+  // Update Info Modal
+  const UPDATE_KEY = 'shirane_stg_seen_update_v1_2';
+  const modalUpdate = document.getElementById('modal-update');
+  const btnOpenUpdate = document.getElementById('btn-open-update');
+  const btnCloseUpdate = document.getElementById('btn-close-update');
+  const chkHideUpdate = document.getElementById('chk-hide-update');
+  if (modalUpdate) {
+    if (!localStorage.getItem(UPDATE_KEY)) {
+      modalUpdate.classList.remove('hidden');
+    }
+    if (btnCloseUpdate) {
+      btnCloseUpdate.addEventListener('click', () => {
+        if (chkHideUpdate && chkHideUpdate.checked) {
+          localStorage.setItem(UPDATE_KEY, '1');
+        } else {
+          localStorage.removeItem(UPDATE_KEY);
+        }
+        modalUpdate.classList.add('hidden');
+      });
+    }
+    if (btnOpenUpdate) {
+      btnOpenUpdate.addEventListener('click', () => {
+        modalUpdate.classList.remove('hidden');
+      });
+    }
+  }
+
   rngBgm.addEventListener('input', () => {
     bgmAudio.volume = parseFloat(rngBgm.value);
   });

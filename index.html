@@ -184,6 +184,55 @@
     font-size: 13px; text-align: left;
   }
   .result-box div { display: flex; justify-content: space-between; margin: 4px 0; }
+
+  /* Update Info Modal */
+  #modal-update {
+    z-index: 20;
+    background: rgba(6, 5, 16, 0.92);
+    padding: 20px;
+  }
+  .update-card {
+    width: 100%;
+    background: linear-gradient(160deg, rgba(24, 16, 48, 0.98), rgba(10, 8, 22, 0.98));
+    border: 2px solid #e879f9;
+    border-radius: 12px;
+    padding: 18px 16px;
+    box-shadow: 0 0 28px rgba(232, 121, 249, 0.35);
+    text-align: left;
+  }
+  .update-badge {
+    display: inline-block;
+    padding: 2px 10px;
+    border-radius: 999px;
+    background: linear-gradient(90deg, #00f5d4, #e879f9);
+    color: #06040d;
+    font-size: 11px;
+    font-weight: 900;
+    letter-spacing: 1px;
+    margin-bottom: 6px;
+  }
+  .update-list {
+    margin: 10px 0 14px;
+    padding-left: 18px;
+    font-size: 12.5px;
+    line-height: 1.6;
+    color: #e2e8f0;
+  }
+  .update-list li { margin-bottom: 6px; }
+  .update-list b { color: #00f5d4; }
+  .btn-info-open {
+    position: absolute;
+    top: 10px; right: 10px;
+    padding: 5px 10px;
+    border-radius: 999px;
+    border: 1px solid rgba(232, 121, 249, 0.65);
+    background: rgba(15, 23, 42, 0.85);
+    color: #f0abfc;
+    font-size: 11px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  .btn-info-open:hover { background: rgba(232, 121, 249, 0.25); }
 </style>
 </head>
 <body>
@@ -199,6 +248,7 @@
 
     <!-- Title Screen -->
     <div id="screen-title" class="overlay">
+      <button id="btn-open-update" class="btn-info-open">📢 更新情報</button>
       <img src="assets/cover_art.jpg" alt="神音煩悩郷" style="width:100%; max-height:240px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,245,212,0.45); margin-bottom:10px; box-shadow:0 0 20px rgba(199,125,255,0.35);">
       <div style="font-size:11px; color:#00f5d4; letter-spacing:2px; font-weight:700; margin-bottom:2px;">HYPER SUNO SHRINE INCIDENT.</div>
       <h2>神音煩悩郷</h2>
@@ -216,6 +266,27 @@
       <div style="margin-top:12px; font-size:11px; color:#94a3b8;">
         PC: 矢印/WASD・マウスドラッグ移動・Shift/右クリック低速・Xボム<br>
         スマホ: 画面スライドで移動・ボタンで低速/ボム
+      </div>
+    </div>
+
+    <!-- Update Info Popup -->
+    <div id="modal-update" class="overlay hidden">
+      <div class="update-card">
+        <div class="update-badge">UPDATE v1.2</div>
+        <h2 style="font-size:20px; margin:2px 0 4px;">アップデートのお知らせ</h2>
+        <p style="margin:0 0 8px; font-size:12px; color:#f0abfc;">Stage 2「Evil Sweet 戦」＆ PCマウス操作を追加しました！</p>
+        <ul class="update-list">
+          <li><b>Stage 2 追加</b>：ゴシック回廊＆新ボス <b>Evil Sweet</b> 登場！タイトル画面から通しプレイ / Stage 2単体を選べます。</li>
+          <li><b>新デザイン弾幕</b>：ダイヤ刃弾・コウモリ弾・跳ね返るキャンディ大玉・予告線つきダークレーザーを実装！</li>
+          <li><b>PCマウスドラッグ対応</b>：左ドラッグで自機移動、<b>右クリック長押し</b>（またはShift）で低速＆判定表示ができます。</li>
+        </ul>
+        <label style="display:flex; align-items:center; gap:6px; font-size:11.5px; color:#94a3b8; margin-bottom:14px; cursor:pointer;">
+          <input type="checkbox" id="chk-hide-update" checked style="accent-color:#e879f9;">
+          次回からこのお知らせを自動で表示しない
+        </label>
+        <div style="text-align:center;">
+          <button id="btn-close-update" class="primary-btn" style="padding:10px 36px; font-size:14px;">OK！遊びに行く</button>
+        </div>
       </div>
     </div>
 
