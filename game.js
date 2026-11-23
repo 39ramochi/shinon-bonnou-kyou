@@ -409,9 +409,6 @@
   function startGame() {
     SoundFX.init();
     SoundFX.vol = parseFloat(rngSe.value);
-    bgmAudio.volume = parseFloat(rngBgm.value) * 0.72;
-    bgmAudio.currentTime = 0;
-    bgmAudio.play().catch(() => {});
 
     scrTitle.classList.add('hidden');
     scrPause.classList.add('hidden');
@@ -422,6 +419,15 @@
 
   function beginStage(stageNum, keepStats) {
     currentStage = stageNum;
+    const targetBgm = stageNum === 2 ? 'assets/stage2/bgm_stage2.mp3' : 'assets/bgm.mp3';
+    if (bgmAudio.getAttribute('src') !== targetBgm) {
+      bgmAudio.setAttribute('src', targetBgm);
+      bgmAudio.load();
+    }
+    bgmAudio.volume = parseFloat(rngBgm.value) * 0.72;
+    bgmAudio.currentTime = 0;
+    bgmAudio.play().catch(() => {});
+
     state = 'playing';
     stageTime = 0;
     bgScroll = 0;
