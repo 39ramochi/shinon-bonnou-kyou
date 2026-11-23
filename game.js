@@ -614,47 +614,73 @@
         const fromLeft = i % 2 === 0;
         enemies.push({
           x: fromLeft ? -25 : W + 25, y: 50 + Math.floor(i / 2) * 34,
-          vx: fromLeft ? 145 : -145, vy: 36, hp: 65, maxHp: 65,
+          vx: fromLeft ? 145 : -145, vy: 36, hp: 75, maxHp: 75,
           kind: 'bat', r: 24, fireCd: 0.55 + (i * 0.08) / d.density, age: 0
         });
       }
     }
-    if (waveIndex === 1 && t > 6.2) {
+    if (waveIndex === 1 && t > 6.5) {
       waveIndex++;
       // Curse Cupcakes descending in formation
       for (let i = 0; i < 5; i++) {
         enemies.push({
           x: 75 + i * 92, y: -30 - Math.abs(2 - i) * 20,
-          vx: 0, vy: 75, hp: 105, maxHp: 105,
+          vx: 0, vy: 75, hp: 120, maxHp: 120,
           kind: 'cupcake', r: 26, fireCd: 0.8 + i * 0.12, age: 0
         });
       }
     }
-    if (waveIndex === 2 && t > 12.2) {
+    if (waveIndex === 2 && t > 12.5) {
       waveIndex++;
       // Twin Elite Cupcakes
-      enemies.push({ x: 125, y: -40, vx: 0, vy: 62, hp: 360, maxHp: 360, kind: 'cupcake', r: 36, elite: true, fireCd: 0.7, age: 0, stopY: 145 });
-      enemies.push({ x: W - 125, y: -40, vx: 0, vy: 62, hp: 360, maxHp: 360, kind: 'cupcake', r: 36, elite: true, fireCd: 0.7, age: 0, stopY: 145 });
+      enemies.push({ x: 125, y: -40, vx: 0, vy: 62, hp: 440, maxHp: 440, kind: 'cupcake', r: 36, elite: true, fireCd: 0.7, age: 0, stopY: 145 });
+      enemies.push({ x: W - 125, y: -40, vx: 0, vy: 62, hp: 440, maxHp: 440, kind: 'cupcake', r: 36, elite: true, fireCd: 0.7, age: 0, stopY: 145 });
     }
-    if (waveIndex === 3 && t > 20.0) {
+    if (waveIndex === 3 && t > 20.5) {
       waveIndex++;
       // Rapid Bat Rush
       for (let i = 0; i < 10; i++) {
         enemies.push({
           x: 45 + (i % 5) * 105, y: -35 - Math.floor(i / 5) * 65,
-          vx: Math.sin(i) * 45, vy: 115, hp: 70, maxHp: 70,
+          vx: Math.sin(i) * 45, vy: 115, hp: 85, maxHp: 85,
           kind: 'bat', r: 24, fireCd: 0.55 / d.density, age: 0
         });
       }
     }
-    if (waveIndex === 4 && t > 25.5) {
+    if (waveIndex === 4 && t > 27.0) {
       waveIndex++;
       // Center Elite Bat + side Cupcakes
-      enemies.push({ x: W / 2, y: -45, vx: 0, vy: 58, hp: 420, maxHp: 420, kind: 'bat', r: 38, elite: true, fireCd: 0.5, age: 0, stopY: 130 });
-      enemies.push({ x: 90, y: -30, vx: 18, vy: 65, hp: 130, maxHp: 130, kind: 'cupcake', r: 26, fireCd: 0.9, age: 0 });
-      enemies.push({ x: W - 90, y: -30, vx: -18, vy: 65, hp: 130, maxHp: 130, kind: 'cupcake', r: 26, fireCd: 0.9, age: 0 });
+      enemies.push({ x: W / 2, y: -45, vx: 0, vy: 58, hp: 520, maxHp: 520, kind: 'bat', r: 38, elite: true, fireCd: 0.5, age: 0, stopY: 130 });
+      enemies.push({ x: 90, y: -30, vx: 18, vy: 65, hp: 150, maxHp: 150, kind: 'cupcake', r: 26, fireCd: 0.9, age: 0 });
+      enemies.push({ x: W - 90, y: -30, vx: -18, vy: 65, hp: 150, maxHp: 150, kind: 'cupcake', r: 26, fireCd: 0.9, age: 0 });
     }
-    if (waveIndex === 5 && t > 32.5) {
+    if (waveIndex === 5 && t > 35.0) {
+      waveIndex++;
+      // Mid-boss Trio: 3 Elite Sugar Bats in V-formation
+      enemies.push({ x: W / 2, y: -40, vx: 0, vy: 60, hp: 560, maxHp: 560, kind: 'bat', r: 38, elite: true, fireCd: 0.45, age: 0, stopY: 125 });
+      enemies.push({ x: 105, y: -60, vx: 0, vy: 60, hp: 380, maxHp: 380, kind: 'bat', r: 34, elite: true, fireCd: 0.55, age: 0, stopY: 165 });
+      enemies.push({ x: W - 105, y: -60, vx: 0, vy: 60, hp: 380, maxHp: 380, kind: 'bat', r: 34, elite: true, fireCd: 0.55, age: 0, stopY: 165 });
+    }
+    if (waveIndex === 6 && t > 43.0) {
+      waveIndex++;
+      // Grand Sweet Parade before Boss
+      for (let i = 0; i < 6; i++) {
+        enemies.push({
+          x: 60 + i * 80, y: -30 - (i % 2) * 35,
+          vx: 0, vy: 82, hp: 135, maxHp: 135,
+          kind: i % 2 === 0 ? 'cupcake' : 'bat', r: 26, fireCd: 0.65 / d.density, age: 0
+        });
+      }
+      for (let i = 0; i < 6; i++) {
+        const fromLeft = i % 2 === 0;
+        enemies.push({
+          x: fromLeft ? -25 : W + 25, y: 120 + i * 26,
+          vx: fromLeft ? 150 : -150, vy: 20, hp: 90, maxHp: 90,
+          kind: 'bat', r: 24, fireCd: 0.5 / d.density, age: 0
+        });
+      }
+    }
+    if (waveIndex === 7 && t > 51.0) {
       waveIndex++;
       bulletsToItems();
       startBossIntro();
@@ -712,9 +738,9 @@
         x: W / 2, y: -90, targetX: W / 2, targetY: 130,
         phase: 0,
         maxPhases: 5,
-        hp: 1150 * DIFFS[currentDiff].bossHp,
-        maxHp: 1150 * DIFFS[currentDiff].bossHp,
-        timer: 38,
+        hp: 2600 * DIFFS[currentDiff].bossHp,
+        maxHp: 2600 * DIFFS[currentDiff].bossHp,
+        timer: 45,
         invuln: true,
         fireCd: 0.6,
         subCd: 1.5,
@@ -789,7 +815,7 @@
         cutin = { timer: 1.5, maxTimer: 1.5, name: boss.spellName, imgKey: 'bossSkebeStand', color: '#f472b6', side: 'right' };
       }
     } else {
-      const hpTable = [1150, 1550, 1300, 1650, 2100];
+      const hpTable = [2600, 3400, 2900, 3800, 4800];
       const spellNames = [
         '',
         '甘罠『スイート・ポイズン・ケージ』',
@@ -799,7 +825,7 @@
       ];
       boss.hp = hpTable[boss.phase] * d.bossHp;
       boss.maxHp = boss.hp;
-      boss.timer = 44;
+      boss.timer = 50;
       boss.fireCd = 0.7;
       boss.subCd = 1.2;
       boss.spellName = spellNames[boss.phase];
