@@ -199,18 +199,22 @@
 
     <!-- Title Screen -->
     <div id="screen-title" class="overlay">
-      <img src="assets/cover_art.jpg" alt="神音煩悩郷" style="width:100%; border-radius:8px; border:1px solid rgba(0,245,212,0.45); margin-bottom:14px; box-shadow:0 0 20px rgba(199,125,255,0.35);">
-      <div style="font-size:11px; color:#00f5d4; letter-spacing:2px; font-weight:700; margin-bottom:4px;">HYPER SUNO SHRINE INCIDENT.</div>
+      <img src="assets/cover_art.jpg" alt="神音煩悩郷" style="width:100%; max-height:240px; object-fit:cover; border-radius:8px; border:1px solid rgba(0,245,212,0.45); margin-bottom:10px; box-shadow:0 0 20px rgba(199,125,255,0.35);">
+      <div style="font-size:11px; color:#00f5d4; letter-spacing:2px; font-weight:700; margin-bottom:2px;">HYPER SUNO SHRINE INCIDENT.</div>
       <h2>神音煩悩郷</h2>
-      <p>煩悩を祓え、BPM180の弾幕神楽。</p>
+      <p style="margin-bottom:10px;">煩悩を祓え、BPM180の弾幕神楽。</p>
+      <div class="diff-group" style="margin-bottom:8px;">
+        <button class="diff-btn active" data-stage="1">STAGE 1〜2 (通し)</button>
+        <button class="diff-btn" data-stage="2">STAGE 2 (Evil Sweet)</button>
+      </div>
       <div class="diff-group">
         <button class="diff-btn" data-diff="easy">EASY</button>
         <button class="diff-btn active" data-diff="normal">NORMAL</button>
         <button class="diff-btn" data-diff="lunatic">LUNATIC</button>
       </div>
       <button id="btn-start" class="primary-btn">お祓い出撃！（START）</button>
-      <div style="margin-top:14px; font-size:11px; color:#94a3b8;">
-        PC: 矢印/WASD移動・Shift低速・Xボム<br>
+      <div style="margin-top:12px; font-size:11px; color:#94a3b8;">
+        PC: 矢印/WASD・マウスドラッグ移動・Shift/右クリック低速・Xボム<br>
         スマホ: 画面スライドで移動・ボタンで低速/ボム
       </div>
     </div>
@@ -279,8 +283,8 @@
 
     <div class="controls-box">
       <b>【操作方法】</b><br>
-      ・<b>移動</b>：矢印キー / WASD<br>
-      ・<b>低速＆当たり判定</b>：Shift キー<br>
+      ・<b>移動</b>：矢印 / WASD / マウスドラッグ<br>
+      ・<b>低速＆判定</b>：Shift / 右クリック長押し<br>
       ・<b>ショット</b>：Z キー（オート切替可）<br>
       ・<b>ボム（弾消し）</b>：X / Space キー<br>
       ・<b>会話送り</b>：Z / Enter / クリック

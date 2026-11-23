@@ -95,13 +95,18 @@
   // --- Load Assets ---
   const assetSrc = {
     bg: 'assets/bg_shrine.jpg',
+    bg2: 'assets/stage2/bg_gothic.jpg',
     player: 'assets/shirane_sd.png',
     shiraneStand: 'assets/shirane_stand.png',
     bossSkebeStand: 'assets/ayataka_skebe_stand.png',
     bossGodStand: 'assets/ayataka_god_stand.png',
     bossGodSd: 'assets/ayataka_god_sd.png',
+    evilStand: 'assets/stage2/evilsweet_stand.png',
+    evilSd: 'assets/stage2/evilsweet_sd.png',
     slime: 'assets/enemy_slime.png',
-    ofuda: 'assets/enemy_ofuda.png'
+    ofuda: 'assets/enemy_ofuda.png',
+    bat: 'assets/stage2/enemy_bat.png',
+    cupcake: 'assets/stage2/enemy_cupcake.png'
   };
   const imgs = {};
   Object.entries(assetSrc).forEach(([k, src]) => {
@@ -117,6 +122,8 @@
     lunatic: { label: 'LUNATIC', bulletSpd: 1.32, density: 1.45, bossHp: 1.25 }
   };
   let currentDiff = 'normal';
+  let selectedStartStage = 1;
+  let currentStage = 1;
 
   // --- Game State ---
   let hiScore = parseInt(localStorage.getItem('shirane_stg_hiscore') || '0', 10);
@@ -141,14 +148,16 @@
 
   let pBullets = [];
   let eBullets = [];
+  let lasers = [];
   let enemies = [];
   let items = [];
   let particles = [];
   let popups = [];
 
-  // Bomb & Cutin state
+  // Bomb, Cutin & Stage Banner state
   let activeBomb = null; // { timer, maxTimer }
   let cutin = null;      // { timer, maxTimer, name, imgKey, color, side }
+  let stageBanner = null; // { timer, maxTimer, title, sub, color }
 
   // Boss state
   let boss = null;
@@ -234,6 +243,42 @@
   };
   canvas.addEventListener('touchend', endTouch);
   canvas.addEventListener('touchcancel', endTouch);
+
+  // PC Mouse Drag Controls (relative drag + right-click slow)
+  let mouseDragging = false;
+  let lastMouseX = 0, lastMouseY = 0;
+  let mouseRightDown = false;
+
+  canvas.addEventListener('mousedown', (e) => {
+    if (e.button === 0) {
+      if (state === 'dialog') return;
+      mouseDragging = true;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    } else if (e.button === 2) {
+      mouseRightDown = true;
+    }
+  });
+  window.addEventListener('mousemove', (e) => {
+    if (!mouseDragging || state !== 'playing') return;
+    const rect = canvas.getBoundingClientRect();
+    const scaleX = W / (rect.width || W);
+    const scaleY = H / (rect.height || H);
+    const slowNow = keys['ShiftLeft'] || keys['ShiftRight'] || mouseRightDown;
+    const sens = slowNow ? 0.55 : 1.05;
+    const dx = (e.clientX - lastMouseX) * scaleX * sens;
+    const dy = (e.clientY - lastMouseY) * scaleY * sens;
+    player.x = Math.max(20, Math.min(W - 20, player.x + dx));
+    player.y = Math.max(24, Math.min(H - 24, player.y + dy));
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
+  });
+  window.addEventListener('mouseup', (e) => {
+    if (e.button === 0) mouseDragging = false;
+    if (e.button === 2) mouseRightDown = false;
+  });
+  canvas.addEventListener('contextmenu', (e) => e.preventDefault());
+
   canvas.addEventListener('click', () => {
     if (performance.now() < suppressClickUntil) return;
     if (state === 'dialog') advanceDialog();
@@ -260,6 +305,13 @@
   }
 
   // UI Listeners
+  document.querySelectorAll('.diff-btn[data-stage]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      document.querySelectorAll('.diff-btn[data-stage]').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      selectedStartStage = parseInt(btn.dataset.stage, 10) || 1;
+    });
+  });
   document.querySelectorAll('.diff-btn[data-diff]').forEach(btn => {
     btn.addEventListener('click', () => {
       document.querySelectorAll('.diff-btn[data-diff]').forEach(b => b.classList.remove('active'));
@@ -290,12 +342,14 @@
     bgmAudio.currentTime = 0;
     pBullets = [];
     eBullets = [];
+    lasers = [];
     enemies = [];
     items = [];
     particles = [];
     boss = null;
     activeBomb = null;
     cutin = null;
+    stageBanner = null;
     dialogQueue = [];
     scrPause.classList.add('hidden');
     scrResult.classList.add('hidden');
@@ -336,27 +390,36 @@
     scrPause.classList.add('hidden');
     scrResult.classList.add('hidden');
 
+    beginStage(selectedStartStage, false);
+  }
+
+  function beginStage(stageNum, keepStats) {
+    currentStage = stageNum;
     state = 'playing';
     stageTime = 0;
     bgScroll = 0;
-    score = 0;
-    grazeCount = 0;
-    power = 1.0;
-    lives = 3;
-    bombs = 3;
-    misses = 0;
-    bombsUsed = 0;
     shake = 0;
     waveIndex = 0;
 
+    if (!keepStats) {
+      score = 0;
+      grazeCount = 0;
+      power = stageNum === 2 ? 2.2 : 1.0;
+      lives = 3;
+      bombs = 3;
+      misses = 0;
+      bombsUsed = 0;
+    }
+
     player.x = W / 2;
     player.y = H - 90;
-    player.invuln = 1.5;
+    player.invuln = 1.8;
     player.fireCd = 0;
     player.deathBombTimer = 0;
 
     pBullets = [];
     eBullets = [];
+    lasers = [];
     enemies = [];
     items = [];
     particles = [];
@@ -364,6 +427,11 @@
     boss = null;
     activeBomb = null;
     cutin = null;
+
+    stageBanner = stageNum === 1
+      ? { timer: 3.2, maxTimer: 3.2, title: 'STAGE 1 : ハイパーSUNO神社参道', sub: '〜 煩悩まみれの神主をお祓いせよ！ 〜', color: '#00f5d4' }
+      : { timer: 3.4, maxTimer: 3.4, title: 'STAGE 2 : 闇菓子のゴシック回廊', sub: '〜 真犯人 Evil Sweet を追え！ 〜', color: '#e879f9' };
+
     updateHUD();
   }
 
@@ -394,10 +462,23 @@
       addParticles(b.x, b.y, '#e0f2fe', 1, 60, 3);
     });
     eBullets = [];
+    lasers = [];
   }
 
   function addBullet(x, y, vx, vy, r = 5, color = '#f472b6', shape = 'orb', extra = {}) {
     eBullets.push({ x, y, vx, vy, r, color, shape, grazed: false, age: 0, ...extra });
+  }
+
+  function addLaser(x1, y1, x2, y2, width = 16, warnTimer = 0.95, activeTimer = 0.6, color = '#e879f9') {
+    lasers.push({ x1, y1, x2, y2, width, warnTimer, activeTimer, maxActive: activeTimer, color, grazed: false });
+  }
+
+  function distToSegment(px, py, x1, y1, x2, y2) {
+    const dx = x2 - x1, dy = y2 - y1;
+    const lenSq = dx * dx + dy * dy;
+    if (lenSq === 0) return Math.hypot(px - x1, py - y1);
+    const t = Math.max(0, Math.min(1, ((px - x1) * dx + (py - y1) * dy) / lenSq));
+    return Math.hypot(px - (x1 + t * dx), py - (y1 + t * dy));
   }
 
   function aimAngle(x1, y1, x2, y2) {
@@ -447,8 +528,13 @@
     updateHUD();
   }
 
-  // --- Stage 1 Enemy Waves ---
+  // --- Stage Enemy Waves ---
   function updateStageWaves(t) {
+    if (currentStage === 1) updateStage1Waves(t);
+    else updateStage2Waves(t);
+  }
+
+  function updateStage1Waves(t) {
     const d = DIFFS[currentDiff];
     if (waveIndex === 0 && t > 1.2) {
       waveIndex++;
@@ -486,6 +572,62 @@
     }
   }
 
+  function updateStage2Waves(t) {
+    const d = DIFFS[currentDiff];
+    if (waveIndex === 0 && t > 1.2) {
+      waveIndex++;
+      // Sugar Bats swooping from both sides
+      for (let i = 0; i < 8; i++) {
+        const fromLeft = i % 2 === 0;
+        enemies.push({
+          x: fromLeft ? -25 : W + 25, y: 50 + Math.floor(i / 2) * 34,
+          vx: fromLeft ? 145 : -145, vy: 36, hp: 65, maxHp: 65,
+          kind: 'bat', r: 24, fireCd: 0.55 + (i * 0.08) / d.density, age: 0
+        });
+      }
+    }
+    if (waveIndex === 1 && t > 6.2) {
+      waveIndex++;
+      // Curse Cupcakes descending in formation
+      for (let i = 0; i < 5; i++) {
+        enemies.push({
+          x: 75 + i * 92, y: -30 - Math.abs(2 - i) * 20,
+          vx: 0, vy: 75, hp: 105, maxHp: 105,
+          kind: 'cupcake', r: 26, fireCd: 0.8 + i * 0.12, age: 0
+        });
+      }
+    }
+    if (waveIndex === 2 && t > 12.2) {
+      waveIndex++;
+      // Twin Elite Cupcakes
+      enemies.push({ x: 125, y: -40, vx: 0, vy: 62, hp: 360, maxHp: 360, kind: 'cupcake', r: 36, elite: true, fireCd: 0.7, age: 0, stopY: 145 });
+      enemies.push({ x: W - 125, y: -40, vx: 0, vy: 62, hp: 360, maxHp: 360, kind: 'cupcake', r: 36, elite: true, fireCd: 0.7, age: 0, stopY: 145 });
+    }
+    if (waveIndex === 3 && t > 20.0) {
+      waveIndex++;
+      // Rapid Bat Rush
+      for (let i = 0; i < 10; i++) {
+        enemies.push({
+          x: 45 + (i % 5) * 105, y: -35 - Math.floor(i / 5) * 65,
+          vx: Math.sin(i) * 45, vy: 115, hp: 70, maxHp: 70,
+          kind: 'bat', r: 24, fireCd: 0.55 / d.density, age: 0
+        });
+      }
+    }
+    if (waveIndex === 4 && t > 25.5) {
+      waveIndex++;
+      // Center Elite Bat + side Cupcakes
+      enemies.push({ x: W / 2, y: -45, vx: 0, vy: 58, hp: 420, maxHp: 420, kind: 'bat', r: 38, elite: true, fireCd: 0.5, age: 0, stopY: 130 });
+      enemies.push({ x: 90, y: -30, vx: 18, vy: 65, hp: 130, maxHp: 130, kind: 'cupcake', r: 26, fireCd: 0.9, age: 0 });
+      enemies.push({ x: W - 90, y: -30, vx: -18, vy: 65, hp: 130, maxHp: 130, kind: 'cupcake', r: 26, fireCd: 0.9, age: 0 });
+    }
+    if (waveIndex === 5 && t > 32.5) {
+      waveIndex++;
+      bulletsToItems();
+      startBossIntro();
+    }
+  }
+
   // --- Dialog System ---
   function startDialog(lines, onComplete) {
     state = 'dialog';
@@ -503,72 +645,135 @@
   }
 
   function startBossIntro() {
-    boss = {
-      x: W / 2, y: -90, targetX: W / 2, targetY: 135,
-      phase: 0, // 0: Normal1, 1: Spell1, 2: Normal2, 3: Spell2, 4: LastSpell
-      maxPhases: 5,
-      hp: 900 * DIFFS[currentDiff].bossHp,
-      maxHp: 900 * DIFFS[currentDiff].bossHp,
-      timer: 35,
-      invuln: true,
-      fireCd: 0.5,
-      angle: 0,
-      spellName: '',
-      purified: false
-    };
+    if (currentStage === 1) {
+      boss = {
+        id: 'ayataka',
+        name: 'ayataka',
+        x: W / 2, y: -90, targetX: W / 2, targetY: 135,
+        phase: 0, // 0: Normal1, 1: Spell1, 2: Normal2, 3: Spell2, 4: LastSpell
+        maxPhases: 5,
+        hp: 900 * DIFFS[currentDiff].bossHp,
+        maxHp: 900 * DIFFS[currentDiff].bossHp,
+        timer: 35,
+        invuln: true,
+        fireCd: 0.5,
+        angle: 0,
+        spellName: '',
+        purified: false
+      };
 
-    startDialog([
-      { speaker: 'shirane', name: '白音（首席巫女）', text: '神主様！また煩悩（スケベ心）に飲まれて、お社がピンクのノイズだらけですっ！' },
-      { speaker: 'ayataka_skebe', name: 'スケベ大魔神 ayataka', text: 'ふははは！煩悩こそ創作の源！このBPM180の快楽ビートに逆らえるものか！' },
-      { speaker: 'shirane', name: '白音（首席巫女）', text: '立派なayataka神になってもらうため、その煩悩……神楽鈴でぜんぶお祓いしますっ！' },
-      { speaker: 'ayataka_skebe', name: 'スケベ大魔神 ayataka', text: '面白い！ならば我が音欲の弾幕、耐えてみせよ！！' }
-    ], () => {
-      boss.invuln = false;
-      bgmAudio.volume = parseFloat(rngBgm.value);
-      SoundFX.spell();
-    });
+      startDialog([
+        { speaker: 'shirane', name: '白音（首席巫女）', text: '神主様！また煩悩（スケベ心）に飲まれて、お社がピンクのノイズだらけですっ！' },
+        { speaker: 'ayataka_skebe', name: 'スケベ大魔神 ayataka', text: 'ふははは！煩悩こそ創作の源！このBPM180の快楽ビートに逆らえるものか！' },
+        { speaker: 'shirane', name: '白音（首席巫女）', text: '立派なayataka神になってもらうため、その煩悩……神楽鈴でぜんぶお祓いしますっ！' },
+        { speaker: 'ayataka_skebe', name: 'スケベ大魔神 ayataka', text: '面白い！ならば我が音欲の弾幕、耐えてみせよ！！' }
+      ], () => {
+        boss.invuln = false;
+        bgmAudio.volume = parseFloat(rngBgm.value);
+        SoundFX.spell();
+      });
+    } else {
+      boss = {
+        id: 'evilsweet',
+        name: 'Evil Sweet',
+        x: W / 2, y: -90, targetX: W / 2, targetY: 130,
+        phase: 0,
+        maxPhases: 5,
+        hp: 1150 * DIFFS[currentDiff].bossHp,
+        maxHp: 1150 * DIFFS[currentDiff].bossHp,
+        timer: 38,
+        invuln: true,
+        fireCd: 0.6,
+        subCd: 1.5,
+        angle: 0,
+        spellName: '',
+        purified: false
+      };
+
+      startDialog([
+        { speaker: 'shirane', name: '白音（首席巫女）', text: '見つけましたよ！神主様に甘いお酒とお菓子を差し入れて、煩悩ビートを仕込んだ真犯人！' },
+        { speaker: 'evilsweet', name: 'Evil Sweet（闇甘味の魔女）', text: 'あら、お社の巫女さん？せっかく甘いお菓子と重低音で夢見心地にしてあげたのに、お邪魔虫ね♪' },
+        { speaker: 'shirane', name: '白音（首席巫女）', text: '神社の平和を乱す悪い甘味は、ここでまとめて浄化しちゃいますっ！' },
+        { speaker: 'evilsweet', name: 'Evil Sweet（闇甘味の魔女）', text: 'ふふっ、できるかしら？ 私の甘い罠と闇の弾幕、たっぷり味わっていきなさいなっ！' }
+      ], () => {
+        boss.invuln = false;
+        bgmAudio.volume = parseFloat(rngBgm.value);
+        SoundFX.spell();
+      });
+    }
   }
 
   function triggerBossNextPhase() {
     bulletsToItems();
     boss.phase++;
     if (boss.phase >= boss.maxPhases) {
-      // Boss defeated -> Purification Ending!
       boss.purified = true;
       boss.invuln = true;
       shake = 18;
       SoundFX.clear();
-      addParticles(boss.x, boss.y, '#00f5d4', 45, 280, 7);
+      addParticles(boss.x, boss.y, boss.id === 'ayataka' ? '#00f5d4' : '#e879f9', 45, 280, 7);
       addParticles(boss.x, boss.y, '#fde047', 35, 240, 6);
 
-      startDialog([
-        { speaker: 'ayataka_god', name: 'ayataka神（覚醒）', text: '……むっ！？ 頭の中のピンク色のモヤが晴れていく……！' },
-        { speaker: 'shirane', name: '白音（首席巫女）', text: 'やったぁ！煩悩が浄化されました！お目覚めですか、ayataka神様！' },
-        { speaker: 'ayataka_god', name: 'ayataka神（覚醒）', text: 'うむ、見事なお祓いだったぞ白音。これからは煩悩を捨て、真に崇められる神として音の世界を導こう！' },
-        { speaker: 'shirane', name: '白音（首席巫女）', text: 'はいっ！ハイパーSUNO神社、本日も快晴です♪' }
-      ], () => {
-        finishGame(true);
-      });
+      if (boss.id === 'ayataka') {
+        startDialog([
+          { speaker: 'ayataka_god', name: 'ayataka神（覚醒）', text: '……むっ！？ 頭の中のピンク色のモヤが晴れていく……！' },
+          { speaker: 'shirane', name: '白音（首席巫女）', text: 'やったぁ！煩悩が浄化されました！お目覚めですか、ayataka神様！' },
+          { speaker: 'ayataka_god', name: 'ayataka神（覚醒）', text: 'うむ、見事だったぞ白音。だが……私に甘いお酒と魔菓子を差し入れて煩悩へ誘惑した黒幕が、神社裏の洋館に潜んでおる！' },
+          { speaker: 'shirane', name: '白音（首席巫女）', text: 'なっ、真犯人がいたんですね！？ そのまま引き継いで追撃しますっ！' }
+        ], () => {
+          beginStage(2, true);
+        });
+      } else {
+        startDialog([
+          { speaker: 'evilsweet', name: 'Evil Sweet（闇甘味の魔女）', text: 'きゃあっ！？ お菓子の魔法が……全部シュガーパウダーにされちゃう〜！！' },
+          { speaker: 'shirane', name: '白音（首席巫女）', text: 'これにてお祓い完了ですっ！神社に甘い罠を仕掛けるのはもうおしまい！' },
+          { speaker: 'evilsweet', name: 'Evil Sweet（闇甘味の魔女）', text: 'くぅっ、覚えてなさいよっ！次はもっと激甘でビターな弾幕を用意してリベンジするんだからっ！' },
+          { speaker: 'shirane', name: '白音（首席巫女）', text: 'いつでも受けて立ちます♪ ハイパーSUNO神社、完全平和ですっ！' }
+        ], () => {
+          finishGame(true);
+        });
+      }
       return;
     }
 
     const d = DIFFS[currentDiff];
-    const hpTable = [900, 1250, 1000, 1350, 1700];
-    const spellNames = [
-      '',
-      '音欲『煩悩ハート・フェスティバル』',
-      '',
-      '甘酒『酔いどれ神主の千鳥足ウェーブ』',
-      '覚醒『ハイパーSUNO神・煩悩浄化ドロップ』'
-    ];
-    boss.hp = hpTable[boss.phase] * d.bossHp;
-    boss.maxHp = boss.hp;
-    boss.timer = 40;
-    boss.fireCd = 0.7;
-    boss.spellName = spellNames[boss.phase];
-    if (boss.spellName) {
-      SoundFX.spell();
-      cutin = { timer: 1.5, maxTimer: 1.5, name: boss.spellName, imgKey: 'bossSkebeStand', color: '#f472b6', side: 'right' };
+    if (boss.id === 'ayataka') {
+      const hpTable = [900, 1250, 1000, 1350, 1700];
+      const spellNames = [
+        '',
+        '音欲『煩悩ハート・フェスティバル』',
+        '',
+        '甘酒『酔いどれ神主の千鳥足ウェーブ』',
+        '覚醒『ハイパーSUNO神・煩悩浄化ドロップ』'
+      ];
+      boss.hp = hpTable[boss.phase] * d.bossHp;
+      boss.maxHp = boss.hp;
+      boss.timer = 40;
+      boss.fireCd = 0.7;
+      boss.spellName = spellNames[boss.phase];
+      if (boss.spellName) {
+        SoundFX.spell();
+        cutin = { timer: 1.5, maxTimer: 1.5, name: boss.spellName, imgKey: 'bossSkebeStand', color: '#f472b6', side: 'right' };
+      }
+    } else {
+      const hpTable = [1150, 1550, 1300, 1650, 2100];
+      const spellNames = [
+        '',
+        '甘罠『スイート・ポイズン・ケージ』',
+        '',
+        '夜菓『ヴァンパイア・ティーパーティ』',
+        '紅魔甘『ブラッディ・マカロン・フィナーレ』'
+      ];
+      boss.hp = hpTable[boss.phase] * d.bossHp;
+      boss.maxHp = boss.hp;
+      boss.timer = 44;
+      boss.fireCd = 0.7;
+      boss.subCd = 1.2;
+      boss.spellName = spellNames[boss.phase];
+      if (boss.spellName) {
+        SoundFX.spell();
+        cutin = { timer: 1.5, maxTimer: 1.5, name: boss.spellName, imgKey: 'evilStand', color: '#e879f9', side: 'right' };
+      }
     }
   }
 
@@ -580,16 +785,20 @@
 
     boss.timer -= dt;
     if (boss.hp <= 0 || boss.timer <= 0) {
-      score += 15000;
+      score += boss.id === 'evilsweet' ? 25000 : 15000;
       triggerBossNextPhase();
       return;
     }
 
+    if (boss.id === 'ayataka') updateAyatakaBoss(dt);
+    else updateEvilSweetBoss(dt);
+  }
+
+  function updateAyatakaBoss(dt) {
     const d = DIFFS[currentDiff];
     boss.angle += dt * 1.9;
     boss.fireCd -= dt;
 
-    // Movement per phase
     if (boss.phase === 3) {
       boss.targetX = W / 2 + Math.sin(stageTime * 2.1) * 145;
       boss.targetY = 125 + Math.cos(stageTime * 3.4) * 28;
@@ -603,7 +812,6 @@
     if (boss.fireCd <= 0) {
       const spd = 190 * d.bulletSpd;
       if (boss.phase === 0) {
-        // Normal 1: Ring + aimed notes
         boss.fireCd = 0.55 / d.density;
         const n = Math.round(14 * d.density);
         for (let i = 0; i < n; i++) {
@@ -616,7 +824,6 @@
           addBullet(boss.x, boss.y, Math.cos(a) * (spd * 1.25), Math.sin(a) * (spd * 1.25), 6, '#38bdf8', 'note');
         }
       } else if (boss.phase === 1) {
-        // Spell 1: Bonno Heart Festival
         boss.fireCd = 0.22 / d.density;
         const arms = 5;
         for (let i = 0; i < arms; i++) {
@@ -626,7 +833,6 @@
           addBullet(boss.x, boss.y, Math.cos(a2) * spd * 0.85, Math.sin(a2) * spd * 0.85, 5.5, '#c084fc', 'orb');
         }
       } else if (boss.phase === 2) {
-        // Normal 2: 7-way burst + side spirals
         boss.fireCd = 0.42 / d.density;
         const pa = aimAngle(boss.x, boss.y, player.x, player.y);
         const ways = currentDiff === 'lunatic' ? 9 : 5;
@@ -635,14 +841,12 @@
           addBullet(boss.x, boss.y, Math.cos(a) * spd * 1.2, Math.sin(a) * spd * 1.2, 5.5, '#fb7185', 'orb');
         }
       } else if (boss.phase === 3) {
-        // Spell 2: Drunken Stagger Wave
         boss.fireCd = 0.16 / d.density;
         for (let k = -2; k <= 2; k++) {
           const a = Math.PI / 2 + k * 0.28 + Math.sin(stageTime * 4) * 0.25;
           addBullet(boss.x, boss.y, Math.cos(a) * spd * 1.15, Math.sin(a) * spd * 1.15, 6, k === 0 ? '#fde047' : '#a855f7', 'orb');
         }
       } else if (boss.phase === 4) {
-        // Last Spell: Hyper SUNO Drop
         boss.fireCd = 0.18 / d.density;
         const n = Math.round(12 * d.density);
         for (let i = 0; i < n; i++) {
@@ -657,6 +861,126 @@
     }
   }
 
+  function updateEvilSweetBoss(dt) {
+    const d = DIFFS[currentDiff];
+    boss.angle += dt * 2.3;
+    boss.fireCd -= dt;
+    boss.subCd -= dt;
+
+    if (boss.phase === 1) {
+      boss.targetX = W / 2 + Math.sin(stageTime * 1.1) * 120;
+      boss.targetY = 125;
+    } else if (boss.phase === 3) {
+      boss.targetX = W / 2 + Math.sin(stageTime * 1.8) * 155;
+      boss.targetY = 115 + Math.cos(stageTime * 2.7) * 24;
+    } else if (boss.phase === 4) {
+      boss.targetX = W / 2 + Math.sin(stageTime * 0.9) * 85;
+      boss.targetY = 135;
+    } else {
+      boss.targetX = W / 2 + Math.sin(stageTime * 1.5) * 130;
+      boss.targetY = 130;
+    }
+
+    const spd = 215 * d.bulletSpd;
+
+    if (boss.phase === 0 && boss.fireCd <= 0) {
+      // Normal 1: Cross Diamond Kunai fans + Bat aimed burst
+      boss.fireCd = 0.45 / d.density;
+      const n = Math.round(10 * d.density);
+      for (let i = 0; i < n; i++) {
+        const a1 = boss.angle + (i * Math.PI * 2) / n;
+        const a2 = -boss.angle * 0.8 + (i * Math.PI * 2) / n;
+        addBullet(boss.x, boss.y, Math.cos(a1) * spd * 1.05, Math.sin(a1) * spd * 1.05, 6, '#e879f9', 'diamond');
+        addBullet(boss.x, boss.y, Math.cos(a2) * spd * 0.85, Math.sin(a2) * spd * 0.85, 6, '#38bdf8', 'diamond');
+      }
+      if (Math.random() < 0.65) {
+        const pa = aimAngle(boss.x, boss.y, player.x, player.y);
+        for (let k = -1; k <= 1; k++) {
+          const a = pa + k * 0.2;
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 1.2, Math.sin(a) * spd * 1.2, 7.5, '#a855f7', 'bat');
+        }
+      }
+    } else if (boss.phase === 1) {
+      // Spell 1: Sweet Poison Cage (Warning Lasers + Delayed-Turn Diamond Kunai)
+      if (boss.subCd <= 0) {
+        boss.subCd = 2.6 / Math.max(0.85, d.density * 0.9);
+        const lx = 60 + Math.random() * (W - 120);
+        addLaser(lx, 0, lx + (Math.random() - 0.5) * 110, H, 18, 0.9, 0.55, '#e879f9');
+        const ly = 240 + Math.random() * (H - 310);
+        addLaser(0, ly, W, ly + (Math.random() - 0.5) * 90, 16, 0.95, 0.5, '#f43f5e');
+      }
+      if (boss.fireCd <= 0) {
+        boss.fireCd = 0.58 / d.density;
+        const n = Math.round(12 * d.density);
+        for (let i = 0; i < n; i++) {
+          const a = boss.angle + (i * Math.PI * 2) / n;
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.85, Math.sin(a) * spd * 0.85, 6, '#f472b6', 'diamond', {
+            turnAt: 0.75, turned: false, turnSpd: spd * 1.25
+          });
+        }
+      }
+    } else if (boss.phase === 2 && boss.fireCd <= 0) {
+      // Normal 2: Rapid Bat Waves + Giant Candy Ring
+      boss.fireCd = 0.36 / d.density;
+      const pa = aimAngle(boss.x, boss.y, player.x, player.y);
+      const ways = currentDiff === 'lunatic' ? 7 : 5;
+      for (let i = -(ways >> 1); i <= (ways >> 1); i++) {
+        const a = pa + i * 0.16;
+        addBullet(boss.x, boss.y, Math.cos(a) * spd * 1.15, Math.sin(a) * spd * 1.15, 7.5, '#c084fc', 'bat');
+      }
+      if (Math.random() < 0.38) {
+        const cn = Math.round(8 * d.density);
+        for (let i = 0; i < cn; i++) {
+          const a = -boss.angle + (i * Math.PI * 2) / cn;
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.72, Math.sin(a) * spd * 0.72, 11, '#fb7185', 'candy');
+        }
+      }
+    } else if (boss.phase === 3) {
+      // Spell 2: Vampire Tea Party (Bouncing Candy Orbs + Diagonal Diamond Shower)
+      if (boss.fireCd <= 0) {
+        boss.fireCd = 0.24 / d.density;
+        for (let side = -1; side <= 1; side += 2) {
+          const sx = boss.x + side * 40;
+          const a = Math.PI / 2 + side * (0.4 + Math.sin(stageTime * 3.5) * 0.35);
+          addBullet(sx, boss.y, Math.cos(a) * spd * 1.1, Math.sin(a) * spd * 1.1, 6, side < 0 ? '#38bdf8' : '#e879f9', 'diamond');
+        }
+      }
+      if (boss.subCd <= 0) {
+        boss.subCd = 1.35 / d.density;
+        const cn = Math.round(7 * d.density);
+        for (let i = 0; i < cn; i++) {
+          const a = boss.angle + (i * Math.PI * 2) / cn;
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.85, Math.sin(a) * spd * 0.85, 11.5, i % 2 === 0 ? '#f43f5e' : '#a855f7', 'candy', {
+            bounces: 1
+          });
+        }
+      }
+    } else if (boss.phase === 4) {
+      // Last Spell: Bloody Macaron Finale (Double Spiral Diamonds + Aimed Lasers + Bats)
+      if (boss.fireCd <= 0) {
+        boss.fireCd = 0.16 / d.density;
+        const arms = currentDiff === 'lunatic' ? 6 : 4;
+        for (let i = 0; i < arms; i++) {
+          const a1 = boss.angle * 2.1 + (i * Math.PI * 2) / arms;
+          const a2 = -boss.angle * 1.7 + (i * Math.PI * 2) / arms;
+          addBullet(boss.x, boss.y, Math.cos(a1) * spd * 1.08, Math.sin(a1) * spd * 1.08, 6, '#f43f5e', 'diamond');
+          addBullet(boss.x, boss.y, Math.cos(a2) * spd * 0.92, Math.sin(a2) * spd * 0.92, 7.5, '#a855f7', 'bat');
+        }
+      }
+      if (boss.subCd <= 0) {
+        boss.subCd = 2.2 / Math.max(0.85, d.density * 0.9);
+        const pa = aimAngle(boss.x, boss.y, player.x, player.y);
+        const tx = boss.x + Math.cos(pa) * 900;
+        const ty = boss.y + Math.sin(pa) * 900;
+        addLaser(boss.x, boss.y, tx, ty, 20, 0.85, 0.55, '#f43f5e');
+        for (let k = -2; k <= 2; k++) {
+          const a = pa + k * 0.24;
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.78, Math.sin(a) * spd * 0.78, 11, '#f472b6', 'candy');
+        }
+      }
+    }
+  }
+
   function finishGame(isClear) {
     state = isClear ? 'clear' : 'gameover';
     bgmAudio.pause();
@@ -664,10 +988,12 @@
     score += clearBonus;
     updateHUD();
 
-    resTitle.textContent = isClear ? 'お祓い完了！STAGE CLEAR!' : '満身創痍… GAME OVER';
+    resTitle.textContent = isClear ? 'お祓い完了！ALL STAGE CLEAR!' : '満身創痍… GAME OVER';
     resSub.textContent = isClear
-      ? '煩悩はすべて浄化され、立派な ayataka神 が誕生しました！'
-      : 'スケベ大魔神の煩悩弾幕に圧倒されてしまった…再挑戦しよう！';
+      ? '黒幕 Evil Sweet も退散し、ハイパーSUNO神社に真の平和が訪れました！'
+      : (currentStage === 2
+        ? 'Evil Sweet の甘い罠と闇の弾幕に圧倒されてしまった…再挑戦しよう！'
+        : 'スケベ大魔神の煩悩弾幕に圧倒されてしまった…再挑戦しよう！');
 
     resStats.innerHTML = `
       <div><span>最終スコア</span><b style="color:#00f5d4">${score.toLocaleString()}</b></div>
@@ -681,11 +1007,15 @@
 
   // --- Main Update ---
   function update(dt) {
-    bgScroll = (bgScroll + 95 * dt) % H;
+    bgScroll = (bgScroll + (currentStage === 2 ? 120 : 95) * dt) % H;
     if (shake > 0) shake = Math.max(0, shake - 35 * dt);
     if (cutin) {
       cutin.timer -= dt;
       if (cutin.timer <= 0) cutin = null;
+    }
+    if (stageBanner) {
+      stageBanner.timer -= dt;
+      if (stageBanner.timer <= 0) stageBanner = null;
     }
 
     if (state !== 'playing') return;
@@ -693,7 +1023,7 @@
     updateStageWaves(stageTime);
 
     // Player movement
-    const slow = keys['ShiftLeft'] || keys['ShiftRight'] || mobileSlow;
+    const slow = keys['ShiftLeft'] || keys['ShiftRight'] || mobileSlow || mouseRightDown;
     const spd = slow ? 135 : 295;
     let dx = 0, dy = 0;
     if (keys['ArrowLeft'] || keys['KeyA']) dx -= 1;
@@ -802,11 +1132,33 @@
       if (e.fireCd <= 0 && e.y > 20 && e.y < H * 0.65) {
         e.fireCd = (e.elite ? 0.65 : 1.35) / d.density;
         const pa = aimAngle(e.x, e.y, player.x, player.y);
-        const ways = e.elite ? 5 : (e.kind === 'ofuda' ? 3 : 1);
-        for (let k = -(ways >> 1); k <= (ways >> 1); k++) {
-          const a = pa + k * 0.22;
-          const sp = (e.elite ? 195 : 165) * d.bulletSpd;
-          addBullet(e.x, e.y, Math.cos(a) * sp, Math.sin(a) * sp, 5.5, e.kind === 'ofuda' ? '#f43f5e' : '#c084fc', 'orb');
+        if (e.kind === 'bat') {
+          const ways = e.elite ? 7 : 3;
+          for (let k = -(ways >> 1); k <= (ways >> 1); k++) {
+            const a = pa + k * 0.2;
+            const sp = (e.elite ? 210 : 185) * d.bulletSpd;
+            addBullet(e.x, e.y, Math.cos(a) * sp, Math.sin(a) * sp, 6, '#e879f9', 'diamond');
+          }
+        } else if (e.kind === 'cupcake') {
+          if (e.elite) {
+            const n = Math.round(10 * d.density);
+            for (let k = 0; k < n; k++) {
+              const a = e.age * 1.4 + (k * Math.PI * 2) / n;
+              addBullet(e.x, e.y, Math.cos(a) * 165 * d.bulletSpd, Math.sin(a) * 165 * d.bulletSpd, 10, '#fb7185', 'candy');
+            }
+          } else {
+            for (let k = -1; k <= 1; k++) {
+              const a = pa + k * 0.28;
+              addBullet(e.x, e.y, Math.cos(a) * 160 * d.bulletSpd, Math.sin(a) * 160 * d.bulletSpd, 9, '#f472b6', 'candy');
+            }
+          }
+        } else {
+          const ways = e.elite ? 5 : (e.kind === 'ofuda' ? 3 : 1);
+          for (let k = -(ways >> 1); k <= (ways >> 1); k++) {
+            const a = pa + k * 0.22;
+            const sp = (e.elite ? 195 : 165) * d.bulletSpd;
+            addBullet(e.x, e.y, Math.cos(a) * sp, Math.sin(a) * sp, 5.5, e.kind === 'ofuda' ? '#f43f5e' : '#c084fc', 'orb');
+          }
         }
       }
       if (e.y > H + 60 || e.y < -90 || e.x < -70 || e.x > W + 70) enemies.splice(i, 1);
@@ -817,9 +1169,26 @@
     // Update Enemy Bullets & Collision / Graze
     for (let i = eBullets.length - 1; i >= 0; i--) {
       const b = eBullets[i];
+      b.age += dt;
+      if (b.turnAt && !b.turned && b.age >= b.turnAt) {
+        b.turned = true;
+        const a = aimAngle(b.x, b.y, player.x, player.y);
+        const sp = b.turnSpd || Math.hypot(b.vx, b.vy);
+        b.vx = Math.cos(a) * sp;
+        b.vy = Math.sin(a) * sp;
+        addParticles(b.x, b.y, b.color, 3, 70, 2.5);
+      }
       b.x += b.vx * dt;
       b.y += b.vy * dt;
-      b.age += dt;
+      if (b.bounces && b.bounces > 0) {
+        if ((b.x < b.r && b.vx < 0) || (b.x > W - b.r && b.vx > 0)) {
+          b.vx = -b.vx;
+          b.bounces--;
+        } else if (b.y < b.r && b.vy < 0) {
+          b.vy = -b.vy;
+          b.bounces--;
+        }
+      }
 
       const dist = Math.hypot(player.x - b.x, player.y - b.y);
       if (!b.grazed && dist < player.grazeR + b.r) {
@@ -835,6 +1204,29 @@
         continue;
       }
       if (b.x < -40 || b.x > W + 40 || b.y < -40 || b.y > H + 40) eBullets.splice(i, 1);
+    }
+
+    // Update Lasers
+    for (let i = lasers.length - 1; i >= 0; i--) {
+      const ls = lasers[i];
+      if (ls.warnTimer > 0) {
+        ls.warnTimer -= dt;
+        if (ls.warnTimer <= 0) SoundFX.kill();
+      } else {
+        ls.activeTimer -= dt;
+        const dist = distToSegment(player.x, player.y, ls.x1, ls.y1, ls.x2, ls.y2);
+        const halfW = ls.width * 0.36;
+        if (!ls.grazed && dist < player.grazeR + halfW) {
+          ls.grazed = true;
+          grazeCount += 3;
+          score += 450;
+          SoundFX.graze();
+        }
+        if (player.invuln <= 0 && player.deathBombTimer <= 0 && dist < player.r + halfW) {
+          player.deathBombTimer = 0.14;
+        }
+        if (ls.activeTimer <= 0) lasers.splice(i, 1);
+      }
     }
 
     // Update Items (Auto-collect line at top 24% of screen)
@@ -890,7 +1282,7 @@
     if (shake > 0) ctx.translate((Math.random() - 0.5) * shake, (Math.random() - 0.5) * shake);
 
     // 1. Vertical Scrolling Background
-    const bg = imgs.bg;
+    const bg = currentStage === 2 ? imgs.bg2 : imgs.bg;
     if (bg && bg.complete && bg.naturalWidth > 0) {
       ctx.drawImage(bg, 0, bgScroll - H, W, H);
       ctx.drawImage(bg, 0, bgScroll, W, H);
@@ -906,12 +1298,35 @@
       ctx.save();
       ctx.translate(boss.x, boss.y);
       ctx.rotate(stageTime * 0.6);
-      ctx.strokeStyle = 'rgba(244, 114, 182, 0.35)';
+      ctx.strokeStyle = boss.id === 'evilsweet' ? 'rgba(232, 121, 249, 0.42)' : 'rgba(244, 114, 182, 0.35)';
       ctx.lineWidth = 2;
       ctx.beginPath(); ctx.arc(0, 0, 120, 0, Math.PI * 2); ctx.stroke();
       ctx.strokeRect(-85, -85, 170, 170);
       ctx.restore();
     }
+
+    // 1.5 Lasers (Warning & Active Beams)
+    lasers.forEach(ls => {
+      ctx.save();
+      if (ls.warnTimer > 0) {
+        ctx.strokeStyle = ls.color;
+        ctx.globalAlpha = 0.35 + 0.35 * Math.sin(stageTime * 24);
+        ctx.lineWidth = 2;
+        ctx.setLineDash([8, 6]);
+        ctx.beginPath(); ctx.moveTo(ls.x1, ls.y1); ctx.lineTo(ls.x2, ls.y2); ctx.stroke();
+      } else {
+        const a = Math.min(1, (ls.activeTimer / ls.maxActive) * 1.5);
+        ctx.globalAlpha = a;
+        ctx.lineCap = 'round';
+        ctx.strokeStyle = ls.color;
+        ctx.lineWidth = ls.width;
+        ctx.beginPath(); ctx.moveTo(ls.x1, ls.y1); ctx.lineTo(ls.x2, ls.y2); ctx.stroke();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = ls.width * 0.42;
+        ctx.beginPath(); ctx.moveTo(ls.x1, ls.y1); ctx.lineTo(ls.x2, ls.y2); ctx.stroke();
+      }
+      ctx.restore();
+    });
 
     // 2. Items
     items.forEach(it => {
@@ -941,18 +1356,22 @@
 
     // 4. Enemies
     enemies.forEach(e => {
-      const spr = e.kind === 'ofuda' ? imgs.ofuda : imgs.slime;
+      const spr = e.kind === 'bat' ? imgs.bat
+        : (e.kind === 'cupcake' ? imgs.cupcake
+        : (e.kind === 'ofuda' ? imgs.ofuda : imgs.slime));
       drawSprite(spr, e.x, e.y, e.elite ? 74 : 50);
     });
 
     // 5. Boss
     if (boss) {
       const bob = Math.sin(stageTime * 3) * 6;
-      const spr = boss.purified ? imgs.bossGodSd : imgs.bossSkebeStand;
+      const spr = boss.id === 'evilsweet'
+        ? imgs.evilSd
+        : (boss.purified ? imgs.bossGodSd : imgs.bossSkebeStand);
       if (!boss.purified) {
         ctx.save();
         const g = ctx.createRadialGradient(boss.x, boss.y + bob, 10, boss.x, boss.y + bob, 75);
-        g.addColorStop(0, 'rgba(244, 114, 182, 0.45)');
+        g.addColorStop(0, boss.id === 'evilsweet' ? 'rgba(232, 121, 249, 0.45)' : 'rgba(244, 114, 182, 0.45)');
         g.addColorStop(1, 'rgba(244, 114, 182, 0)');
         ctx.fillStyle = g;
         ctx.beginPath(); ctx.arc(boss.x, boss.y + bob, 75, 0, Math.PI * 2); ctx.fill();
@@ -965,8 +1384,8 @@
     if (player.invuln <= 0 || Math.floor(player.invuln * 16) % 2 === 0) {
       drawSprite(imgs.player, player.x, player.y, 70);
     }
-    // Hitbox core on Shift or Mobile Slow
-    if (keys['ShiftLeft'] || keys['ShiftRight'] || mobileSlow) {
+    // Hitbox core on Shift, Mobile Slow, or Mouse Right Click
+    if (keys['ShiftLeft'] || keys['ShiftRight'] || mobileSlow || mouseRightDown) {
       ctx.save();
       ctx.translate(player.x, player.y);
       ctx.rotate(stageTime * 2.5);
@@ -984,7 +1403,55 @@
     eBullets.forEach(b => {
       ctx.save();
       ctx.translate(b.x, b.y);
-      if (b.shape === 'heart') {
+      if (b.shape === 'diamond') {
+        ctx.rotate(Math.atan2(b.vy, b.vx));
+        ctx.fillStyle = b.color;
+        ctx.beginPath();
+        ctx.moveTo(b.r * 2.0, 0);
+        ctx.lineTo(0, b.r * 0.95);
+        ctx.lineTo(-b.r * 1.3, 0);
+        ctx.lineTo(0, -b.r * 0.95);
+        ctx.closePath();
+        ctx.fill();
+        ctx.fillStyle = '#ffffff';
+        ctx.beginPath();
+        ctx.moveTo(b.r * 1.1, 0);
+        ctx.lineTo(0, b.r * 0.42);
+        ctx.lineTo(-b.r * 0.65, 0);
+        ctx.lineTo(0, -b.r * 0.42);
+        ctx.closePath();
+        ctx.fill();
+      } else if (b.shape === 'bat') {
+        const flap = Math.sin(b.age * 18) * 3;
+        ctx.fillStyle = '#1e1b4b';
+        ctx.strokeStyle = b.color;
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        ctx.moveTo(0, 3);
+        ctx.quadraticCurveTo(-b.r * 1.2, -b.r + flap, -b.r * 1.7, flap);
+        ctx.quadraticCurveTo(-b.r * 0.8, 3, 0, 5);
+        ctx.quadraticCurveTo(b.r * 0.8, 3, b.r * 1.7, flap);
+        ctx.quadraticCurveTo(b.r * 1.2, -b.r + flap, 0, 3);
+        ctx.fill();
+        ctx.stroke();
+        ctx.fillStyle = '#fb7185';
+        ctx.fillRect(-3, -1, 2, 2);
+        ctx.fillRect(1, -1, 2, 2);
+      } else if (b.shape === 'candy') {
+        ctx.rotate(b.age * 4.5);
+        ctx.fillStyle = b.color;
+        ctx.beginPath(); ctx.arc(0, 0, b.r, 0, Math.PI * 2); ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2.2;
+        ctx.beginPath();
+        for (let t = 0; t < 12; t++) {
+          const ang = t * 0.6;
+          const rad = (t / 12) * (b.r * 0.85);
+          if (t === 0) ctx.moveTo(0, 0);
+          else ctx.lineTo(Math.cos(ang) * rad, Math.sin(ang) * rad);
+        }
+        ctx.stroke();
+      } else if (b.shape === 'heart') {
         ctx.fillStyle = b.color;
         ctx.font = `bold ${Math.round(b.r * 2.4)}px sans-serif`;
         ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
@@ -1035,7 +1502,7 @@
       ctx.fillStyle = '#fff';
       ctx.font = 'bold 12px "Yu Gothic UI", sans-serif';
       ctx.textAlign = 'left';
-      ctx.fillText(`ayataka  (${boss.maxPhases - boss.phase})`, 18, 36);
+      ctx.fillText(`${boss.name}  (${boss.maxPhases - boss.phase})`, 18, 36);
       ctx.textAlign = 'right';
       ctx.fillStyle = '#fde047';
       ctx.fillText(String(Math.ceil(boss.timer)), W - 18, 36);
@@ -1081,8 +1548,10 @@
         drawSprite(imgs.shiraneStand, 125, H - 270, 340);
         ctx.restore();
       }
-      // Right standing (ayataka)
-      const rImg = cur.speaker === 'ayataka_god' ? imgs.bossGodStand : imgs.bossSkebeStand;
+      // Right standing (ayataka / Evil Sweet)
+      const rImg = cur.speaker === 'evilsweet'
+        ? imgs.evilStand
+        : (cur.speaker === 'ayataka_god' ? imgs.bossGodStand : imgs.bossSkebeStand);
       if (rImg && rImg.complete) {
         ctx.save();
         ctx.globalAlpha = !isLeft ? 1.0 : 0.45;
@@ -1109,6 +1578,24 @@
       ctx.font = '11px sans-serif';
       ctx.textAlign = 'right';
       ctx.fillText('▼ Z / Enter / クリックで次へ', W - 32, H - 30);
+    }
+
+    // 13. Stage Title Banner
+    if (stageBanner) {
+      const p = 1 - stageBanner.timer / stageBanner.maxTimer;
+      const alpha = p < 0.18 ? p / 0.18 : (p > 0.78 ? (1 - p) / 0.22 : 1);
+      ctx.save();
+      ctx.globalAlpha = Math.max(0, alpha);
+      ctx.fillStyle = 'rgba(6, 5, 18, 0.78)';
+      ctx.fillRect(0, H * 0.36, W, 76);
+      ctx.fillStyle = stageBanner.color;
+      ctx.font = 'bold 19px "Yu Gothic UI", sans-serif';
+      ctx.textAlign = 'center';
+      ctx.fillText(stageBanner.title, W / 2, H * 0.36 + 32);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.font = '13px "Yu Gothic UI", sans-serif';
+      ctx.fillText(stageBanner.sub, W / 2, H * 0.36 + 56);
+      ctx.restore();
     }
 
     ctx.restore();
