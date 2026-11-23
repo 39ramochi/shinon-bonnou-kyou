@@ -940,76 +940,76 @@
       boss.targetY = 130;
     }
 
-    const spd = 215 * d.bulletSpd;
+    const spd = 195 * d.bulletSpd;
 
     if (boss.phase === 0 && boss.fireCd <= 0) {
       // Normal 1: Cross Diamond Kunai fans + Bat aimed burst
-      boss.fireCd = 0.45 / d.density;
-      const n = Math.round(10 * d.density);
+      boss.fireCd = 0.52 / d.density;
+      const n = Math.round(8 * d.density);
       for (let i = 0; i < n; i++) {
         const a1 = boss.angle + (i * Math.PI * 2) / n;
         const a2 = -boss.angle * 0.8 + (i * Math.PI * 2) / n;
-        addBullet(boss.x, boss.y, Math.cos(a1) * spd * 1.05, Math.sin(a1) * spd * 1.05, 6, '#e879f9', 'diamond');
-        addBullet(boss.x, boss.y, Math.cos(a2) * spd * 0.85, Math.sin(a2) * spd * 0.85, 6, '#38bdf8', 'diamond');
+        addBullet(boss.x, boss.y, Math.cos(a1) * spd * 1.02, Math.sin(a1) * spd * 1.02, 6, '#e879f9', 'diamond');
+        addBullet(boss.x, boss.y, Math.cos(a2) * spd * 0.82, Math.sin(a2) * spd * 0.82, 6, '#38bdf8', 'diamond');
       }
-      if (Math.random() < 0.65) {
+      if (Math.random() < 0.5) {
         const pa = aimAngle(boss.x, boss.y, player.x, player.y);
         for (let k = -1; k <= 1; k++) {
-          const a = pa + k * 0.2;
-          addBullet(boss.x, boss.y, Math.cos(a) * spd * 1.2, Math.sin(a) * spd * 1.2, 7.5, '#a855f7', 'bat');
+          const a = pa + k * 0.22;
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 1.15, Math.sin(a) * spd * 1.15, 7.5, '#a855f7', 'bat');
         }
       }
     } else if (boss.phase === 1) {
       // Spell 1: Sweet Poison Cage (Warning Lasers + Delayed-Turn Diamond Kunai)
       if (boss.subCd <= 0) {
-        boss.subCd = 2.6 / Math.max(0.85, d.density * 0.9);
+        boss.subCd = 3.1 / Math.max(0.85, d.density * 0.9);
         const lx = 60 + Math.random() * (W - 120);
-        addLaser(lx, 0, lx + (Math.random() - 0.5) * 110, H, 18, 0.9, 0.55, '#e879f9');
+        addLaser(lx, 0, lx + (Math.random() - 0.5) * 110, H, 16, 1.0, 0.5, '#e879f9');
         const ly = 240 + Math.random() * (H - 310);
-        addLaser(0, ly, W, ly + (Math.random() - 0.5) * 90, 16, 0.95, 0.5, '#f43f5e');
+        addLaser(0, ly, W, ly + (Math.random() - 0.5) * 90, 15, 1.05, 0.45, '#f43f5e');
       }
       if (boss.fireCd <= 0) {
-        boss.fireCd = 0.58 / d.density;
-        const n = Math.round(12 * d.density);
+        boss.fireCd = 0.68 / d.density;
+        const n = Math.round(10 * d.density);
         for (let i = 0; i < n; i++) {
           const a = boss.angle + (i * Math.PI * 2) / n;
-          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.85, Math.sin(a) * spd * 0.85, 6, '#f472b6', 'diamond', {
-            turnAt: 0.75, turned: false, turnSpd: spd * 1.25
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.82, Math.sin(a) * spd * 0.82, 6, '#f472b6', 'diamond', {
+            turnAt: 0.8, turned: false, turnSpd: spd * 1.15
           });
         }
       }
     } else if (boss.phase === 2 && boss.fireCd <= 0) {
       // Normal 2: Rapid Bat Waves + Giant Candy Ring
-      boss.fireCd = 0.36 / d.density;
+      boss.fireCd = 0.45 / d.density;
       const pa = aimAngle(boss.x, boss.y, player.x, player.y);
       const ways = currentDiff === 'lunatic' ? 7 : 5;
       for (let i = -(ways >> 1); i <= (ways >> 1); i++) {
-        const a = pa + i * 0.16;
-        addBullet(boss.x, boss.y, Math.cos(a) * spd * 1.15, Math.sin(a) * spd * 1.15, 7.5, '#c084fc', 'bat');
+        const a = pa + i * 0.18;
+        addBullet(boss.x, boss.y, Math.cos(a) * spd * 1.1, Math.sin(a) * spd * 1.1, 7.5, '#c084fc', 'bat');
       }
-      if (Math.random() < 0.38) {
-        const cn = Math.round(8 * d.density);
+      if (Math.random() < 0.30) {
+        const cn = Math.round(7 * d.density);
         for (let i = 0; i < cn; i++) {
           const a = -boss.angle + (i * Math.PI * 2) / cn;
-          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.72, Math.sin(a) * spd * 0.72, 11, '#fb7185', 'candy');
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.7, Math.sin(a) * spd * 0.7, 11, '#fb7185', 'candy');
         }
       }
     } else if (boss.phase === 3) {
       // Spell 2: Vampire Tea Party (Bouncing Candy Orbs + Diagonal Diamond Shower)
       if (boss.fireCd <= 0) {
-        boss.fireCd = 0.24 / d.density;
+        boss.fireCd = 0.30 / d.density;
         for (let side = -1; side <= 1; side += 2) {
           const sx = boss.x + side * 40;
           const a = Math.PI / 2 + side * (0.4 + Math.sin(stageTime * 3.5) * 0.35);
-          addBullet(sx, boss.y, Math.cos(a) * spd * 1.1, Math.sin(a) * spd * 1.1, 6, side < 0 ? '#38bdf8' : '#e879f9', 'diamond');
+          addBullet(sx, boss.y, Math.cos(a) * spd * 1.05, Math.sin(a) * spd * 1.05, 6, side < 0 ? '#38bdf8' : '#e879f9', 'diamond');
         }
       }
       if (boss.subCd <= 0) {
-        boss.subCd = 1.35 / d.density;
-        const cn = Math.round(7 * d.density);
+        boss.subCd = 1.65 / d.density;
+        const cn = Math.round(6 * d.density);
         for (let i = 0; i < cn; i++) {
           const a = boss.angle + (i * Math.PI * 2) / cn;
-          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.85, Math.sin(a) * spd * 0.85, 11.5, i % 2 === 0 ? '#f43f5e' : '#a855f7', 'candy', {
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.8, Math.sin(a) * spd * 0.8, 11.5, i % 2 === 0 ? '#f43f5e' : '#a855f7', 'candy', {
             bounces: 1
           });
         }
@@ -1017,24 +1017,24 @@
     } else if (boss.phase === 4) {
       // Last Spell: Bloody Macaron Finale (Double Spiral Diamonds + Aimed Lasers + Bats)
       if (boss.fireCd <= 0) {
-        boss.fireCd = 0.16 / d.density;
-        const arms = currentDiff === 'lunatic' ? 6 : 4;
+        boss.fireCd = 0.21 / d.density;
+        const arms = currentDiff === 'lunatic' ? 5 : 3;
         for (let i = 0; i < arms; i++) {
           const a1 = boss.angle * 2.1 + (i * Math.PI * 2) / arms;
           const a2 = -boss.angle * 1.7 + (i * Math.PI * 2) / arms;
-          addBullet(boss.x, boss.y, Math.cos(a1) * spd * 1.08, Math.sin(a1) * spd * 1.08, 6, '#f43f5e', 'diamond');
-          addBullet(boss.x, boss.y, Math.cos(a2) * spd * 0.92, Math.sin(a2) * spd * 0.92, 7.5, '#a855f7', 'bat');
+          addBullet(boss.x, boss.y, Math.cos(a1) * spd * 1.04, Math.sin(a1) * spd * 1.04, 6, '#f43f5e', 'diamond');
+          addBullet(boss.x, boss.y, Math.cos(a2) * spd * 0.88, Math.sin(a2) * spd * 0.88, 7.5, '#a855f7', 'bat');
         }
       }
       if (boss.subCd <= 0) {
-        boss.subCd = 2.2 / Math.max(0.85, d.density * 0.9);
+        boss.subCd = 2.7 / Math.max(0.85, d.density * 0.9);
         const pa = aimAngle(boss.x, boss.y, player.x, player.y);
         const tx = boss.x + Math.cos(pa) * 900;
         const ty = boss.y + Math.sin(pa) * 900;
-        addLaser(boss.x, boss.y, tx, ty, 20, 0.85, 0.55, '#f43f5e');
-        for (let k = -2; k <= 2; k++) {
-          const a = pa + k * 0.24;
-          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.78, Math.sin(a) * spd * 0.78, 11, '#f472b6', 'candy');
+        addLaser(boss.x, boss.y, tx, ty, 18, 0.95, 0.5, '#f43f5e');
+        for (let k = -1; k <= 1; k++) {
+          const a = pa + k * 0.26;
+          addBullet(boss.x, boss.y, Math.cos(a) * spd * 0.75, Math.sin(a) * spd * 0.75, 11, '#f472b6', 'candy');
         }
       }
     }
