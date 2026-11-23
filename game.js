@@ -330,7 +330,7 @@
   document.getElementById('btn-resume').addEventListener('click', resumeGame);
 
   // Update Info Modal
-  const UPDATE_KEY = 'shirane_stg_seen_update_v1_2';
+  const UPDATE_KEY = 'shirane_stg_seen_update_v1_3';
   const modalUpdate = document.getElementById('modal-update');
   const btnOpenUpdate = document.getElementById('btn-open-update');
   const btnCloseUpdate = document.getElementById('btn-close-update');
